@@ -12,8 +12,8 @@ keywords = ["bevy", "card", "cards"]
 categories = ["game-development"]
 
 [dependencies]
-bevy = "0.15.3"
-bevy_tween = "0.7"
+bevy = { path = "../../bevy_engine" }
+bevy_tween = { path = "../bevy_tween"}
 serde = { version = "1.0.219", features = ["derive"] }
 
 # Enable a small amount of optimization in debug mode
