@@ -15,43 +15,38 @@ impl Plugin for CardDraggingPlugin {
 }
 
 fn on_drag_start(
-    drag_start: Trigger<Pointer<DragStart>>,
-    mut card_transforms: Query<(&mut Transform, &Card), (With<Card>, Without<CardLine>)>,
-    card_line_transforms: Query<&Transform, (With<CardLine>, Without<Card>)>,
+    mut trigger: Trigger<Pointer<DragStart>>,
+    mut card_transforms: Query<&Card>,
+    dragged_cards: Query<(&Card, &Dragged)>,
     mut commands: Commands,
 ) {
-    if let Ok((mut card_transform, card)) = card_transforms.get_mut(drag_start.entity()) {
-        if let Some(mut entity_commands) = commands.get_entity(drag_start.entity()) {
-            entity_commands.insert(Dragged::Actively);
+    trigger.propagate(false);
+    if let Ok(card) = card_transforms.get_mut(trigger.target) {
+        if theres_an_actively_dragged_card_from_that_line(card, &dragged_cards) {
+            return;
         }
-
-        if let Some(card_line) = card.owner_line {
-            if let (Ok(card_line_transform), Some(mut card_line_commands)) = (
-                card_line_transforms.get(card_line),
-                commands.get_entity(card_line),
-            ) {
-                card_line_commands.remove_children(&[drag_start.entity()]);
-                card_transform.translation =
-                    card_line_transform.transform_point(card_transform.translation);
-                card_transform.rotation = card_line_transform.rotation * card_transform.rotation;
-                card_transform.scale *= card_line_transform.scale;
+        if let Ok(mut entity_commands) = commands.get_entity(trigger.target) {
+            entity_commands.insert(Dragged::Actively);
+            if card.owner_line.is_some() {
+                entity_commands.remove_parent_in_place();
             }
         }
     }
 }
 
 fn on_drag(
-    drag: Trigger<Pointer<Drag>>,
+    mut trigger: Trigger<Pointer<Drag>>,
     mut card_transforms: Query<&mut Transform, With<Card>>,
 ) {
-    if let Ok(mut card_transform) = card_transforms.get_mut(drag.entity()) {
-        card_transform.translation.x += drag.delta.x;
-        card_transform.translation.y -= drag.delta.y;
+    trigger.propagate(false);
+    if let Ok(mut card_transform) = card_transforms.get_mut(trigger.target) {
+        card_transform.translation.x += trigger.delta.x;
+        card_transform.translation.y -= trigger.delta.y;
     }
 }
 
 fn back_to_origin_when_unused(
-    drag_end: Trigger<Pointer<DragEnd>>,
+    mut trigger: Trigger<Pointer<DragEnd>>,
     mut dragged_cards: Query<
         (&mut Transform, Entity, &Card, &mut Dragged, &Name),
         Without<CardLine>,
@@ -60,13 +55,14 @@ fn back_to_origin_when_unused(
     card_consts: Res<CardConsts>,
     mut commands: Commands,
 ) {
+    trigger.propagate(false);
     if let Ok((mut card_transform, card_entity, card, mut card_dragged_component, card_name)) =
-        dragged_cards.get_mut(drag_end.entity())
+        dragged_cards.get_mut(trigger.target)
     {
         *card_dragged_component = Dragged::GoingBackToPlace;
 
         if let Some(owner_card_line) = card.owner_line {
-            if let (Ok(card_line_transform), Some(mut card_line_commands)) = (
+            if let (Ok(card_line_transform), Ok(mut card_line_commands)) = (
                 card_lines_query.get(owner_card_line),
                 commands.get_entity(owner_card_line),
             ) {
@@ -106,7 +102,7 @@ fn play_card_going_back_to_place_animation(
                 "Go-back-to-origin-after-dragging animation parent for {}",
                 card_name
             )),
-            TweenPriorityToOthersOfType(1),
+            TweenPriorityToOthersOfType(30),
         ))
         .animation()
         .insert(sequence((
@@ -117,15 +113,6 @@ fn play_card_going_back_to_place_animation(
                     transform_state.translation_to(card.origin.translation),
                     format!(
                         "{} go-back-to-origin-after-dragging translation tween",
-                        card_name
-                    ),
-                ),
-                named_tween(
-                    Duration::from_secs_f32(card_consts.go_back_to_place_tween_duration),
-                    EaseKind::Linear,
-                    transform_state.rotation_to(card.origin.rotation),
-                    format!(
-                        "{} go-back-to-origin-after-dragging rotation tween",
                         card_name
                     ),
                 ),
@@ -143,13 +130,14 @@ fn play_card_going_back_to_place_animation(
 }
 
 fn listen_to_dragging_done_for_card(
-    trigger: Trigger<TweenEvent<DeclareDraggingDoneForCard>>,
+    mut trigger: Trigger<TweenEvent<DeclareDraggingDoneForCard>>,
     cards: Query<(), With<Card>>,
     mut commands: Commands,
 ) {
+    trigger.propagate(false);
     if let Some(entity) = trigger.data.card_entity {
         if let Ok(_card) = cards.get(entity) {
-            if let Some(mut entity_commands) = commands.get_entity(entity) {
+            if let Ok(mut entity_commands) = commands.get_entity(entity) {
                 entity_commands.remove::<Dragged>();
             }
         }

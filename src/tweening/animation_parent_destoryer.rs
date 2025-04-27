@@ -8,10 +8,7 @@ pub struct AnimationParentDestroyerPlugin;
 
 impl Plugin for AnimationParentDestroyerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(
-            Update,
-                despawn_done_time_runners,
-        );
+        app.add_systems(Update, despawn_done_time_runners);
     }
 }
 
@@ -29,24 +26,27 @@ pub fn despawn_done_time_runners(
 ) {
     for event in time_runner_ended_reader.read() {
         if event.is_completed() {
-            commands.entity(event.time_runner).try_despawn_recursive();
+            if let Ok(mut entity_commands) = commands.get_entity(event.time_runner) {
+                entity_commands.try_despawn();
+            }
         }
     }
 }
 
 pub fn despawn_time_runners_with_no_children<T: Sendable>(
-    destoryed_tween: Trigger<OnRemove, ComponentTween<T>>,
+    mut trigger: Trigger<OnRemove, ComponentTween<T>>,
     time_runners: Query<(&Children, Entity), With<TimeRunner>>,
-    mut commands: Commands
+    mut commands: Commands,
 ) {
+    trigger.propagate(false);
     'time_runners_for: for (time_runner_children, time_runner_entity) in &time_runners {
         for child in time_runner_children.iter() {
-            if *child != destoryed_tween.entity(){
+            if child != trigger.target() {
                 continue 'time_runners_for;
             }
         }
-        if let Some(entity_commands) = commands.get_entity(time_runner_entity){
-            entity_commands.try_despawn_recursive();
+        if let Ok(mut entity_commands) = commands.get_entity(time_runner_entity) {
+            entity_commands.try_despawn();
         }
     }
 }

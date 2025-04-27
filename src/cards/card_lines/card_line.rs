@@ -19,11 +19,13 @@ pub struct CardLine {
     pub slide_duration: f32,
     /// The gap between the cards in the line in pixels
     pub card_origin_gap: f32,
+    /// Optional picked cards capacity
+    pub picked_cards_capacity: Option<usize>,
 }
 
 impl CardLine {
     /// Inserts a card to the line if its max capacity was not yet reached
-    pub fn insert_if_theres_space(&mut self, card_entity: Entity) -> ActionPerformed {
+    pub fn push_if_theres_space(&mut self, card_entity: Entity) -> ActionPerformed {
         let there_was_space = self.cards_in_order.len() < self.max_cards;
         if there_was_space {
             self.cards_in_order.push(card_entity);
@@ -35,6 +37,13 @@ impl CardLine {
     pub fn remove_card_if_found(&mut self, card_entity: Entity) -> ActionPerformed {
         let removed = remove_by_value(&card_entity, &mut self.cards_in_order).is_some();
         ActionPerformed(removed)
+    }
+
+    /// Removes all the cards and returns them
+    pub fn remove_all_cards(&mut self) -> Vec<Entity> {
+        let cards = self.cards_in_order.clone();
+        self.cards_in_order.clear();
+        cards
     }
 
     /// Swaps between two indexes in an inefficient way that looks cool
@@ -81,6 +90,11 @@ impl CardLine {
         self.card_origin_gap = gap;
         self
     }
+
+    pub fn with_picked_cards_capacity(mut self, capacity: usize) -> Self {
+        self.picked_cards_capacity = Some(capacity);
+        self
+    }
 }
 
 impl Default for CardLine {
@@ -92,6 +106,7 @@ impl Default for CardLine {
             raised_card_line_delta: 100.0,
             slide_duration: 0.3,
             card_origin_gap: 140.0,
+            picked_cards_capacity: None,
         }
     }
 }

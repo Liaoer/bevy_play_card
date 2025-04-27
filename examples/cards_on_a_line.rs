@@ -16,24 +16,29 @@ fn spawn_cards_on_a_line(
     let line = commands
         .spawn(CardLineBundle::from_card_line(
             CardLine::default()
-              .with_max_cards(cards_count)
-              .with_card_origin_gap(100.0)))
+                .with_max_cards(cards_count)
+                .with_card_origin_gap(100.0)
+                .with_picked_cards_capacity(3),
+        ))
         .id();
+    let mut card_entities = vec![];
     for _ in 0..cards_count {
-        let card_entity = commands
-            .spawn((
-                Sprite {
-                    image: asset_server.load("PlaceholderCard.png"),
-                    ..default()
-                },
-                CardBundle::new(Transform::from_scale(Vec3::splat(0.4))),
-            ))
-            .id();
-        card_line_request_writer.send(CardLineRequest {
-            line,
-            request_type: CardLineRequestType::AddToCardLine { card_entity },
-        });
+        card_entities.push(
+            commands
+                .spawn((
+                    Sprite {
+                        image: asset_server.load("PlaceholderCard.png"),
+                        ..default()
+                    },
+                    CardBundle::new(Transform::from_scale(Vec3::splat(0.4))),
+                ))
+                .id(),
+        );
     }
+    card_line_request_writer.write(CardLineRequest {
+        line,
+        request_type: CardLineRequestType::BatchAddToLine { card_entities },
+    });
 }
 
 fn setup(mut commands: Commands) {

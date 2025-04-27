@@ -1,5 +1,3 @@
-#![allow(clippy::type_complexity)]
-/*!
 ## Using The Crate
 
 [(Click me to go back to the main readme)](../README.md)
@@ -66,6 +64,7 @@ The variants of `CardLineRequestType` are as follows:
 | `BatchAddToLine`         | Inserts the cards to the line if within capacity, starting from the first |
 | `BatchRemoveFromLine`    | Removes the cards from the line if they were there                        |
 | `RemoveAllCardsFromLine` | Removes all the cards in the line                                         |
+
 
 ### Card [Tags](src/cards/tags.rs)
 Cards are being tagged for easier queries when they're hovered, picked and dragged.
@@ -143,48 +142,3 @@ Ending up with:
   ```
 
 [(Click me to go back to the main readme)](../README.md)
-  ```
-
-[(Click me to go back to the main readme)](../README.md)
-!*/
-
-pub mod cards;
-mod generic_plugins;
-pub mod trait_unions;
-pub mod tweening;
-
-#[macro_use]
-pub mod macros;
-pub mod bevy_card_plugin;
-pub mod utilities;
-
-pub mod prelude {
-    pub use crate::bevy_card_plugin::*;
-    pub use crate::cards::{
-        CardsPlugin, CardsPluginShouldPrintLogs,
-        card::*,
-        card_bundle::*,
-        card_lines::{
-            CardLinesPlugin, card_line::*, card_line_bundle::*, card_lines_content_manager::*,
-            card_lines_mover::*, event::*,
-        },
-        card_managers::{
-            CardManagersPlugin, card_dragging_manager::*, card_hovering_manager::*,
-            card_origin_set_listener::*, card_picking_manager::*, card_tag_insertion_listener::*,
-            theres_an_actively_dragged_card_from_that_line,
-        },
-        card_namer::*,
-        event::*,
-        tags::*,
-    };
-    pub use crate::trait_unions::*;
-    pub use crate::tweening::{
-        TweeningPlugin, TweeningPluginShouldPrintLogs, animation_parent_destoryer::*,
-        custom_combinators::*, tween_destoryer::*, tween_priority::*, tween_request::*,
-    };
-    pub use crate::utilities::system_sets::*;
-    pub use bevy::{platform::collections::HashMap, prelude::*};
-    pub use bevy_tween::*;
-    pub use std::marker::PhantomData;
-    pub use tween_event::*;
-}
